@@ -119,6 +119,8 @@ async def get_data_async(session, url):
                     data.append( await get_product_info_async(session, link) )
 
                     logging.info(link)
+                    
+    return data if data else []
 
 
 async def main():
