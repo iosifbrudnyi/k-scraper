@@ -17,13 +17,10 @@ base = requests.get(baseurl, headers=headers).text
 base_soup = BeautifulSoup(base, 'html.parser')
 
 
-async def get_product_block_url_async(session, url, block_id):
-    async with session.get(url + f'?p={block_id}', headers=headers) as resp:
+async def get_product_page_url_async(session, url, page_id):
+    async with session.get(url + f'?p={page_id}', headers=headers) as resp:
         return await resp.text()
     
-
-
-
 async def get_product_info_async(session, url):
 	async with session.get(url, headers=headers) as resp:
             f = await resp.text()
@@ -67,8 +64,7 @@ async def get_product_info_async(session, url):
 
 async def get_data_async(session, url):
     data = []
-    sem = asyncio.Semaphore(10)
-
+    sem = asyncio.Semaphore(10000000)
     async with sem:
         async with session.get(url, headers=headers) as resp:
             base_page = await resp.text()
@@ -80,25 +76,22 @@ async def get_data_async(session, url):
                 pages_num_info = [int( page_info.text ) for page_info in pages_info]
                 num_of_pages = math.ceil( (pages_num_info[2] / pages_num_info[1]) )
 
-                pages = []
-
+        
                 for i in range(1, num_of_pages + 1):
-                    pages.append( await get_product_block_url_async(session=session, url=url, block_id=i) )
-
-                for page in pages:
+                    page = await get_product_page_url_async(session=session, url=url, page_id=i)
                     soup = BeautifulSoup(page, "html.parser")
                     page_products_form = soup.find_all("form",{"class":"item"})
                     page_products_div = soup.find_all("div",{"class":"item"})
 
                     for page_product in page_products_form:
                         link = page_product.find("a", {"class": "product"}).get("href")
-                        data.append( await get_product_info_async(session, link) )
+                        data.append(link)
 
                         logging.info(link)
 
                     for page_product in page_products_div:
                         link = page_product.find("a", {"class": "product"}).get("href")
-                        data.append( await get_product_info_async(session, link) )
+                        data.append(link)
 
                         logging.info(link)
 
@@ -109,17 +102,17 @@ async def get_data_async(session, url):
 
                 for page_product in page_products_form:
                     link = page_product.find("a", {"class": "product"}).get("href")
-                    data.append( await get_product_info_async(session, link) )
+                    data.append(link)
 
                     logging.info(link)
 
 
                 for page_product in page_products_div:
                     link = page_product.find("a", {"class": "product"}).get("href")
-                    data.append( await get_product_info_async(session, link) )
+                    data.append(link)
 
                     logging.info(link)
-                    
+
     return data if data else []
 
 
@@ -129,6 +122,7 @@ async def main():
         product_block_urls = [el['href'] for el in base_soup.select("a.block.text-base.font-semibold.leading-loose")]
 
         all_data = []
+     
 
         for product_block_url in product_block_urls:
             data = await get_data_async(session, product_block_url)
@@ -136,11 +130,15 @@ async def main():
 
             del data
 
+        # all_data = await get_data_async(session, "https://www.kimbrer.com/brocade.html")
+
+
         tasks = []
 
         for link in all_data:
                 tasks.append(asyncio.create_task(get_product_info_async(session, link)))
-                product_info = await asyncio.gather(*tasks)
+
+        product_info = await asyncio.gather(*tasks)
 
         df = pd.DataFrame(product_info)
         df.to_csv("output.csv", index=False)
