@@ -65,21 +65,39 @@ async def get_product_info_async(session, url):
 async def get_data_async(session, url):
     data = []
     sem = asyncio.Semaphore(10000000)
-    async with sem:
-        async with session.get(url, headers=headers) as resp:
-            base_page = await resp.text()
-            base_page_soup=BeautifulSoup(base_page,'html.parser') 
+    try:
+        async with sem:
+            async with session.get(url, headers=headers) as resp:
+                base_page = await resp.text()
+                base_page_soup=BeautifulSoup(base_page,'html.parser') 
 
-            pages_info = base_page_soup.find_all("span", {"class" : "toolbar-number"})
+                pages_info = base_page_soup.find_all("span", {"class" : "toolbar-number"})
 
-            if len(pages_info) != 2:
-                pages_num_info = [int( page_info.text ) for page_info in pages_info]
-                num_of_pages = math.ceil( (pages_num_info[2] / pages_num_info[1]) )
+                if  isinstance(pages_info, list) and len(pages_info) != 2:
+                    pages_num_info = [int( page_info.text ) for page_info in pages_info]
+                    num_of_pages = math.ceil( (pages_num_info[2] / pages_num_info[1]) )
 
-        
-                for i in range(1, num_of_pages + 1):
-                    page = await get_product_page_url_async(session=session, url=url, page_id=i)
-                    soup = BeautifulSoup(page, "html.parser")
+            
+                    for i in range(1, num_of_pages + 1):
+                        page = await get_product_page_url_async(session=session, url=url, page_id=i)
+                        soup = BeautifulSoup(page, "html.parser")
+                        page_products_form = soup.find_all("form",{"class":"item"})
+                        page_products_div = soup.find_all("div",{"class":"item"})
+
+                        for page_product in page_products_form:
+                            link = page_product.find("a", {"class": "product"}).get("href")
+                            data.append(link)
+
+                            logging.info(link)
+
+                        for page_product in page_products_div:
+                            link = page_product.find("a", {"class": "product"}).get("href")
+                            data.append(link)
+
+                            logging.info(link)
+
+                else:
+                    soup = BeautifulSoup(base_page, "html.parser")
                     page_products_form = soup.find_all("form",{"class":"item"})
                     page_products_div = soup.find_all("div",{"class":"item"})
 
@@ -89,31 +107,16 @@ async def get_data_async(session, url):
 
                         logging.info(link)
 
+
                     for page_product in page_products_div:
                         link = page_product.find("a", {"class": "product"}).get("href")
                         data.append(link)
 
                         logging.info(link)
-
-            else:
-                soup = BeautifulSoup(base_page, "html.parser")
-                page_products_form = soup.find_all("form",{"class":"item"})
-                page_products_div = soup.find_all("div",{"class":"item"})
-
-                for page_product in page_products_form:
-                    link = page_product.find("a", {"class": "product"}).get("href")
-                    data.append(link)
-
-                    logging.info(link)
-
-
-                for page_product in page_products_div:
-                    link = page_product.find("a", {"class": "product"}).get("href")
-                    data.append(link)
-
-                    logging.info(link)
-
-    return data if data else []
+    except Exception:
+        print(Exception)
+    finally:
+        return data if data else []
 
 
 async def main():
@@ -129,9 +132,6 @@ async def main():
             all_data.extend(data)
 
             del data
-
-        # all_data = await get_data_async(session, "https://www.kimbrer.com/brocade.html")
-
 
         tasks = []
 
