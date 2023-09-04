@@ -6,10 +6,7 @@ import pandas as pd
 import aiohttp 
 import asyncio
 import logging
-from systemd import journal
-level = logging.INFO
-handlers = [journal.JournaldLogHandler()]
-logging.basicConfig(level=level, handlers=handlers, format='%(asctime)s - %(levelname)s - %(message)s')
+logging.basicConfig(level=logging.INFO,format='%(asctime)s - %(levelname)s - %(message)s')
 
 start_time = time.time()
 baseurl = "https://www.kimbrer.com"
