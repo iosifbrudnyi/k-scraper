@@ -72,8 +72,9 @@ async def get_data_async(session, url):
                 base_page_soup=BeautifulSoup(base_page,'html.parser') 
 
                 pages_info = base_page_soup.find_all("span", {"class" : "toolbar-number"})
+                print(pages_info)
 
-                if  isinstance(pages_info, list) and len(pages_info) != 2:
+                if  isinstance(pages_info, list) and len(pages_info) != 2 and len(pages_info) > 0:
                     pages_num_info = [int( page_info.text ) for page_info in pages_info]
                     num_of_pages = math.ceil( (pages_num_info[2] / pages_num_info[1]) )
 
@@ -113,8 +114,8 @@ async def get_data_async(session, url):
                         data.append(link)
 
                         logging.info(link)
-    except Exception:
-        print(Exception)
+    except Exception as e:
+        print(e)
     finally:
         return data if data else []
 
@@ -123,7 +124,7 @@ async def main():
     connector = aiohttp.TCPConnector(limit=50)
     async with aiohttp.ClientSession(connector=connector) as session:
         product_block_urls = [el['href'] for el in base_soup.select("a.block.text-base.font-semibold.leading-loose")]
-
+        
         all_data = []
      
 
