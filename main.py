@@ -6,8 +6,10 @@ import pandas as pd
 import aiohttp 
 import asyncio
 import logging
-
-logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+from systemd import journal
+level = logging.INFO
+handlers = [journal.JournaldLogHandler()]
+logging.basicConfig(level=level, handlers=handlers, format='%(asctime)s - %(levelname)s - %(message)s')
 
 start_time = time.time()
 baseurl = "https://www.kimbrer.com"
@@ -72,10 +74,12 @@ async def get_data_async(session, url):
                 base_page_soup=BeautifulSoup(base_page,'html.parser') 
 
                 pages_info = base_page_soup.find_all("span", {"class" : "toolbar-number"})
-                print(pages_info)
 
                 if  isinstance(pages_info, list) and len(pages_info) != 2 and len(pages_info) > 0:
                     pages_num_info = [int( page_info.text ) for page_info in pages_info]
+
+                    print(pages_num_info)
+
                     num_of_pages = math.ceil( (pages_num_info[2] / pages_num_info[1]) )
 
             
@@ -126,8 +130,7 @@ async def main():
         product_block_urls = [el['href'] for el in base_soup.select("a.block.text-base.font-semibold.leading-loose")]
         
         all_data = []
-     
-
+    
         for product_block_url in product_block_urls:
             data = await get_data_async(session, product_block_url)
             all_data.extend(data)
