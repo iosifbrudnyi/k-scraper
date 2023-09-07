@@ -24,7 +24,11 @@ CONNECTIONS = os.cpu_count()
 
 
 def get_product_page_url(url, page_id):
+    time.sleep(3)
     resp = requests.get(url=url + f'?p={page_id}', headers=headers)
+    if resp.status_code != 200:
+        get_product_page_url(url, page_id)
+
     return resp.text
     
     
@@ -122,7 +126,7 @@ def get_data(url):
 
 def main():
     product_block_urls = [el['href'] for el in base_soup.select("a.block.text-base.font-semibold.leading-loose")]
-    
+
     all_data = []
     product_info = []
 
